@@ -69,7 +69,7 @@ jobs:
 
   get-matrix:
     name: Get matrix
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       projects: ${{ steps.get-matrix.outputs.result }}
     steps:
