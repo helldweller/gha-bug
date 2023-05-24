@@ -1,0 +1,107 @@
+---
+name: Deploy
+
+on:
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Select the environment
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - production
+          - staging
+          - testing
+          - autotests
+      proj1:
+        description: Build and deploy proj1 
+        default: true
+        type: boolean
+      proj2:
+        description: Build and deploy proj2
+        default: true
+        type: boolean
+      proj3:
+        description: Build and deploy proj3
+        default: true
+        type: boolean
+      proj4:
+        description: Build and deploy proj4 
+        default: true
+        type: boolean
+      proj5:
+        description: Build and deploy proj5 
+        default: true
+        type: boolean
+
+  workflow_call:
+    inputs:
+      environment:
+        default: staging
+        required: true
+        type: string
+      proj1:
+        description: Build and deploy proj1 
+        default: true
+        type: boolean
+      proj2:
+        description: Build and deploy proj2
+        default: true
+        type: boolean
+      proj3:
+        description: Build and deploy proj3
+        default: true
+        type: boolean
+      proj4:
+        description: Build and deploy proj4 
+        default: true
+        type: boolean
+      proj5:
+        description: Build and deploy proj5 
+        default: true
+        type: boolean
+
+run-name: Deploy (${{ inputs.environment }})
+
+jobs:
+
+  get-matrix:
+    name: Get matrix
+    runs-on: self-hosted
+    outputs:
+      projects: ${{ steps.get-matrix.outputs.result }}
+    steps:
+      -
+        name: Get matrix
+        uses: actions/github-script@v6
+        id: get-matrix
+        with:
+          result-encoding: json
+          retries: 1
+          script: |
+            try {
+              const projects = ['proj1','proj2', 'proj3', 'proj4', 'proj5']
+              var arr = []
+              for (const p of projects) {
+                if (context.payload.inputs[p] === 'true') {
+                  arr.push(p);
+                }
+              }
+              return arr
+            } catch (error) {
+              core.setFailed(error.message);
+            }
+    
+  deploy:
+    needs: get-matrix
+    name: Deploy (${{ matrix.project }})
+    uses: ./.github/workflows/deploy-one.yml
+    with:
+      project: ${{ matrix.project }}
+      environment: ${{ inputs.environment }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJson(needs.get-matrix.outputs.projects) }}

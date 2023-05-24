@@ -1,0 +1,58 @@
+---
+name: Deploy one project
+
+on:
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Select the environment
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - production
+          - staging
+          - testing
+          - autotests
+      project:
+        description: Project to build and deploy
+        default: proj1
+        required: true
+        type: string
+
+  workflow_call:
+    inputs:
+      environment:
+        default: staging
+        required: true
+        type: string
+      project:
+        default: proj1
+        required: true
+        type: string
+
+run-name: Deploy (${{ inputs.environment }} / ${{ inputs.project }})
+
+jobs:
+
+  build-image:
+    name: Build image
+    uses: ./.github/workflows/build-image.yml
+    with:
+      project: ${{ inputs.project }}
+      environment: ${{ inputs.environment }}
+
+  deploy-image:
+    name: Deploy image
+    runs-on: ubuntu-latest
+    needs: [build-image]
+    environment:
+      name: ${{ inputs.environment }}/${{ inputs.project }}
+    concurrency:
+      group: deploy/${{ inputs.environment }}/${{ inputs.project }}
+      cancel-in-progress: false 
+    steps:
+      -
+        name: Hello
+        run: echo Deploy
